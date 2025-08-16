@@ -1,6 +1,10 @@
 package adopet.api.service;
 
-import adopet.api.dto.*;
+import adopet.api.dto.AdocaoDTO;
+import adopet.api.dto.AprovarAdocaoDTO;
+import adopet.api.dto.ReprovarAdocaoDTO;
+import adopet.api.dto.SolicitacaoDeAdocaoDTO;
+import adopet.api.exception.AdocaoException;
 import adopet.api.model.Adocao;
 import adopet.api.model.Pet;
 import adopet.api.model.StatusAdocao;
@@ -38,14 +42,21 @@ public class AdocaoService {
     public void solicitar(SolicitacaoDeAdocaoDTO dto){
         Pet pet = petRepository.getReferenceById(dto.idPet());
         Tutor tutor = tutorRepository.getReferenceById(dto.idTutor());
+        Boolean petComAdocaoEmAndamento = adocaoRepository.existsByPetAndStatus(pet, StatusAdocao.AGUARDANDO_AVALIACAO);
+        Integer adocesTutor = adocaoRepository.countByTutorIdAndStatus(dto.idTutor(), StatusAdocao.APROVADO);
+
+        if(pet.getAdotado()) throw new AdocaoException("Pet já adotado");
+        if(petComAdocaoEmAndamento) throw new AdocaoException("Pet com adoção em andamento");
+        if(adocesTutor == 2) throw new AdocaoException("Tutor com maximo de acoções permitido");
 
         adocaoRepository.save(new Adocao(tutor,pet, dto.motivo()));
     }
 
+
     public void aprovar(AprovarAdocaoDTO dto){
         Adocao adocao = adocaoRepository.getReferenceById(dto.idAdocao());
-        adocao.marcarComoAprovada();
-        adocao.getPet().marcarComoAdotado();
+            adocao.marcarComoAprovada();
+            adocao.getPet().marcarComoAdotado();
     }
 
     public void reprovar(ReprovarAdocaoDTO dto){
